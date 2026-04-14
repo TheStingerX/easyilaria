@@ -8,12 +8,6 @@ from aiohttp.resolver import DefaultResolver
 from aiohttp_socks import ProxyConnector
 from bs4 import BeautifulSoup
 
-try:
-    from playwright.async_api import async_playwright
-    HAS_PLAYWRIGHT = True
-except ImportError:
-    HAS_PLAYWRIGHT = False
-
 logger = logging.getLogger(__name__)
 
 class StaticResolver(DefaultResolver):
@@ -169,6 +163,9 @@ class MaxstreamExtractor:
 
     async def _get_uprot_playwright(self, link: str) -> str:
         """Use Playwright (real browser) to bypass Cloudflare on uprot.net."""
+        from playwright.async_api import async_playwright
+        
+        logger.info(f"Playwright: loading uprot page {link}")
         async with async_playwright() as pw:
             browser = await pw.chromium.launch(
                 headless=True,
@@ -183,15 +180,24 @@ class MaxstreamExtractor:
                 
                 # Navigate to uprot page
                 resp = await page.goto(link, wait_until="domcontentloaded", timeout=30000)
-                if resp and resp.status >= 400:
-                    logger.warning(f"Playwright uprot page returned {resp.status}")
+                
+                # If Cloudflare challenge, wait for it to resolve
+                if resp and resp.status == 403:
+                    logger.info("Playwright: Cloudflare challenge detected, waiting...")
+                    try:
+                        await page.wait_for_url(lambda url: "uprot.net" in url, timeout=15000)
+                        await page.wait_for_load_state("domcontentloaded", timeout=10000)
+                    except Exception:
+                        pass  # Continue anyway, page might have loaded
                 
                 # Wait for the redirect link to appear
-                await page.wait_for_selector("a[href*='maxstream'], a[href*='stayonline'], a", timeout=15000)
+                try:
+                    await page.wait_for_selector("a[href*='maxstream'], a[href*='stayonline'], a", timeout=20000)
+                except Exception:
+                    logger.debug(f"Playwright: selector wait timed out, checking page anyway")
                 
                 # Extract href from first <a> tag
                 href = await page.evaluate("""() => {
-                    // Prefer links to maxstream/stayonline
                     let a = document.querySelector('a[href*="maxstream"]') 
                          || document.querySelector('a[href*="stayonline"]')
                          || document.querySelector('a');
@@ -202,7 +208,7 @@ class MaxstreamExtractor:
                     logger.info(f"Playwright extracted uprot redirect: {href}")
                     return href
                 
-                # Fallback: check if page redirected to maxstream directly
+                # Check if page redirected to maxstream directly
                 current_url = page.url
                 if "maxstream" in current_url or "stayonline" in current_url:
                     logger.info(f"Playwright followed redirect to: {current_url}")
@@ -210,6 +216,7 @@ class MaxstreamExtractor:
                 
                 # Last try: get page content and parse
                 content = await page.content()
+                logger.debug(f"Playwright page content (first 500): {content[:500]}")
                 soup = BeautifulSoup(content, "lxml")
                 a_tag = soup.find("a")
                 if a_tag and a_tag.get("href"):
@@ -225,11 +232,12 @@ class MaxstreamExtractor:
             link = link.replace("msf", "mse")
         
         # Try Playwright first (bypasses Cloudflare TLS fingerprinting)
-        if HAS_PLAYWRIGHT:
-            try:
-                return await self._get_uprot_playwright(link)
-            except Exception as e:
-                logger.warning(f"Playwright uprot failed ({e}), falling back to aiohttp")
+        try:
+            return await self._get_uprot_playwright(link)
+        except ImportError:
+            logger.warning("Playwright not installed, skipping browser-based uprot bypass")
+        except Exception as e:
+            logger.warning(f"Playwright uprot failed ({e}), falling back to aiohttp")
         
         # Fallback: aiohttp with DoH
         text = await self._smart_request(link)
