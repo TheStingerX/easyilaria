@@ -46,6 +46,7 @@ from config import (
     ENABLE_WARP,
     ENABLE_REMUXING,
     WARP_EXCLUDE_DOMAINS,
+    WARP_PROXY_URL,
 )
 from extractors.generic import GenericHLSExtractor, ExtractorError
 from services.manifest_rewriter import ManifestRewriter
@@ -2338,9 +2339,15 @@ class HLSProxy:
                 )
             else:
                 session, session_proxy = await self._get_proxy_session(stream_url)
-                routing = "BYPASS (Real IP)" if any(d in stream_url for d in BYPASSED_WARP_DOMAINS) else "WARP (Cloudflare IP)"
+                
+                # ✅ FIX LOG: Determine correct routing for display
+                if session_proxy:
+                    routing = f"WARP (Cloudflare IP)" if session_proxy == WARP_PROXY_URL else f"PROXY ({session_proxy})"
+                else:
+                    routing = "BYPASS (Real IP)"
+                
                 logger.info(
-                    f"📡 [Proxy Stream] {routing} - Using session{f' via proxy {session_proxy}' if session_proxy else ' (direct)'} for: {stream_url}"
+                    f"📡 [Proxy Stream] {routing} - Using session (direct) for: {stream_url}"
                 )
             # Use standard aiohttp session
             resp_ctx = session.get(stream_url, headers=headers, ssl=not disable_ssl)
