@@ -2,6 +2,7 @@ import asyncio
 import logging
 import time
 import threading
+import os
 import cloudscraper
 from typing import List, Dict, Optional, Callable, Any
 
