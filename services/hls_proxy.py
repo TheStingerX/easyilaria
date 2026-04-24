@@ -582,15 +582,16 @@ class HLSProxy:
             setattr(self, target_attr, session)
         return session
 
-    def _check_dynamic_warp_bypass(self, url: str):
-        """Dynamically adds domain to WARP bypass if it matches known patterns."""
+    def _check_dynamic_warp_bypass(self, url: str, force: bool = False):
+        """Dynamically adds domain to WARP bypass if it matches known patterns or if forced."""
         if not ENABLE_WARP or VERSION_MODE != "Full":
             return
             
         # Patterns for domains that usually block Cloudflare/WARP
         # Cinemacity, VixSrc, etc.
         bypass_patterns = [
-            "cccdn.net", "cinemacity.cc", "strem.fun", "torrentio.strem.fun"
+            "cccdn.net", "cinemacity.cc", "strem.fun", "torrentio.strem.fun",
+            "vavoo.to", "vavoo.tv", "lokke.app"
         ]
         
         try:
@@ -598,8 +599,8 @@ class HLSProxy:
             domain = urlsplit(url).netloc
             if not domain: return
             
-            # If domain matches any pattern and hasn't been bypassed yet
-            is_problematic = any(p in domain.lower() for p in bypass_patterns)
+            # If domain matches any pattern, has been bypassed yet, or if forced
+            is_problematic = force or any(p in domain.lower() for p in bypass_patterns)
 
             if is_problematic:
                 if domain not in BYPASSED_WARP_DOMAINS:
@@ -632,7 +633,7 @@ class HLSProxy:
         - proxy_url: The proxy URL being used, or None for direct connection
         """
         # Trigger dynamic bypass check before getting proxy settings
-        self._check_dynamic_warp_bypass(url)
+        self._check_dynamic_warp_bypass(url, force=bypass_warp)
         
         proxy = get_proxy_for_url(url, TRANSPORT_ROUTES, GLOBAL_PROXIES, bypass_warp=bypass_warp)
 
@@ -1308,13 +1309,15 @@ class HLSProxy:
             )
             return web.Response(status=401, text="Unauthorized: Invalid API Password")
 
-        bypass_warp = request.query.get("warp", "").lower() == "off"
+        target_url = request.query.get("url") or request.query.get("d")
+        bypass_warp = (request.query.get("warp", "").lower() == "off") or (
+            target_url and ("vavoo.to" in target_url or "vavoo.tv" in target_url)
+        )
         token = BYPASS_WARP_CONTEXT.set(bypass_warp)
         proxy_token = SELECTED_PROXY_CONTEXT.set(None)
         
         try:
             extractor = None
-            target_url = request.query.get("url") or request.query.get("d")
             
             # --- Gestione URL brevi (Shortened URLs) ---
             url_id = request.query.get("hls_url_id")
