@@ -747,195 +747,201 @@ class HLSProxy:
             # 1. Selezione Manuale tramite parametro 'host'
             if host:
                 host = host.lower()
-                key = host
+                # ✅ FIX: Usa una chiave di cache che include lo stato del WARP per evitare contaminazioni
+                key = f"{host}_direct" if bypass_warp else host
+                
+                # ✅ FIX: Calcola il proxy corretto in base a bypass_warp invece di usare GLOBAL_PROXIES indiscriminatamente
+                proxy = get_proxy_for_url(host, TRANSPORT_ROUTES, GLOBAL_PROXIES, bypass_warp=bypass_warp)
+                proxy_list = [proxy] if proxy else []
 
                 if host == "vavoo":
                     if key not in self.extractors:
                         self.extractors[key] = VavooExtractor(
-                            request_headers, proxies=GLOBAL_PROXIES
+                            request_headers, proxies=proxy_list
                         )
                     return self.extractors[key]
                 elif host == "vixsrc":
                     if key not in self.extractors:
                         self.extractors[key] = VixSrcExtractor(
-                            request_headers, proxies=GLOBAL_PROXIES
+                            request_headers, proxies=proxy_list
                         )
                     return self.extractors[key]
                 elif host == "vixcloud":
                     if key not in self.extractors:
                         self.extractors[key] = VixSrcExtractor(
-                            request_headers, proxies=GLOBAL_PROXIES
+                            request_headers, proxies=proxy_list
                         )
                     return self.extractors[key]
                 elif _is_sportsonline_candidate(host):
-                    key = "sportsonline"
+                    key = "sportsonline_direct" if bypass_warp else "sportsonline"
                     if key not in self.extractors:
                         self.extractors[key] = SportsonlineExtractor(
-                            request_headers, proxies=GLOBAL_PROXIES
+                            request_headers, proxies=proxy_list
                         )
                     return self.extractors[key]
                 elif host in {"mixdrop", "m1xdrop"}:
                     if key not in self.extractors:
                         self.extractors[key] = MixdropExtractor(
-                            request_headers, proxies=GLOBAL_PROXIES
+                            request_headers, proxies=proxy_list
                         )
                     return self.extractors[key]
                 elif host == "voe":
                     if key not in self.extractors:
                         self.extractors[key] = VoeExtractor(
-                            request_headers, proxies=GLOBAL_PROXIES
+                            request_headers, proxies=proxy_list
                         )
                     return self.extractors[key]
                 elif host == "streamtape":
                     if key not in self.extractors:
                         self.extractors[key] = StreamtapeExtractor(
-                            request_headers, proxies=GLOBAL_PROXIES
+                            request_headers, proxies=proxy_list
                         )
                     return self.extractors[key]
                 elif host == "orion":
                     if key not in self.extractors:
                         self.extractors[key] = OrionExtractor(
-                            request_headers, proxies=GLOBAL_PROXIES
+                            request_headers, proxies=proxy_list
                         )
                     return self.extractors[key]
                 elif host == "freeshot":
                     if key not in self.extractors:
                         self.extractors[key] = FreeshotExtractor(
-                            request_headers, proxies=GLOBAL_PROXIES
+                            request_headers, proxies=proxy_list
                         )
                     return self.extractors[key]
                 # --- New Extractors (host selection) ---
                 elif host in ["doodstream", "dood", "d000d"]:
-                    key = "doodstream"
+                    key = "doodstream_direct" if bypass_warp else "doodstream"
                     if key not in self.extractors:
                         self.extractors[key] = DoodStreamExtractor(
                             request_headers,
-                            proxies=GLOBAL_PROXIES,
+                            proxies=proxy_list,
                         )
                     return self.extractors[key]
                 elif host == "fastream":
                     if key not in self.extractors:
                         self.extractors[key] = FastreamExtractor(
-                            request_headers, proxies=GLOBAL_PROXIES
+                            request_headers, proxies=proxy_list
                         )
                     return self.extractors[key]
                 elif host == "filelions":
                     if key not in self.extractors:
                         self.extractors[key] = FileLionsExtractor(
-                            request_headers, proxies=GLOBAL_PROXIES
+                            request_headers, proxies=proxy_list
                         )
                     return self.extractors[key]
                 elif host == "filemoon":
                     if key not in self.extractors:
                         self.extractors[key] = FileMoonExtractor(
-                            request_headers, proxies=GLOBAL_PROXIES
+                            request_headers, proxies=proxy_list
                         )
                     return self.extractors[key]
                 elif host == "lulustream":
                     if key not in self.extractors:
                         self.extractors[key] = LuluStreamExtractor(
-                            request_headers, proxies=GLOBAL_PROXIES
+                            request_headers, proxies=proxy_list
                         )
                     return self.extractors[key]
                 elif host == "maxstream":
                     if key not in self.extractors:
+                        # Maxstream needs multiple candidates because of mirrors
                         proxy_candidates = []
                         for candidate in ("uprot.net", "maxstream.video", "maxstream"):
-                            proxy = get_proxy_for_url(
+                            p = get_proxy_for_url(
                                 candidate, TRANSPORT_ROUTES, GLOBAL_PROXIES, bypass_warp=bypass_warp
                             )
-                            if proxy and proxy not in proxy_candidates:
-                                proxy_candidates.append(proxy)
+                            if p and p not in proxy_candidates:
+                                proxy_candidates.append(p)
                         self.extractors[key] = MaxstreamExtractor(
                             request_headers, proxies=proxy_candidates
                         )
                     return self.extractors[key]
                 elif host in ["okru", "ok.ru"]:
-                    key = "okru"
+                    key = "okru_direct" if bypass_warp else "okru"
                     if key not in self.extractors:
                         self.extractors[key] = OkruExtractor(
-                            request_headers, proxies=GLOBAL_PROXIES
+                            request_headers, proxies=proxy_list
                         )
                     return self.extractors[key]
                 elif host == "streamwish":
                     if key not in self.extractors:
                         self.extractors[key] = StreamWishExtractor(
-                            request_headers, proxies=GLOBAL_PROXIES
+                            request_headers, proxies=proxy_list
                         )
                     return self.extractors[key]
                 elif host == "deltabit":
                     if key not in self.extractors:
                         self.extractors[key] = DeltabitExtractor(
-                            request_headers, proxies=GLOBAL_PROXIES, bypass_warp=bypass_warp
+                            request_headers, proxies=proxy_list, bypass_warp=bypass_warp
                         )
                     return self.extractors[key]
                 elif host == "streamhg":
                     if key not in self.extractors:
                         self.extractors[key] = StreamHGExtractor(
-                            request_headers, proxies=GLOBAL_PROXIES
+                            request_headers, proxies=proxy_list
                         )
                     return self.extractors[key]
                 elif host == "supervideo":
                     if key not in self.extractors:
                         self.extractors[key] = SupervideoExtractor(
-                            request_headers, proxies=GLOBAL_PROXIES
+                            request_headers, proxies=proxy_list
                         )
                     return self.extractors[key]
                 elif host == "dropload":
                     if key not in self.extractors:
                         self.extractors[key] = DroploadExtractor(
-                            request_headers, proxies=GLOBAL_PROXIES
+                            request_headers, proxies=proxy_list
                         )
                     return self.extractors[key]
                 elif host == "uqload":
                     if key not in self.extractors:
                         self.extractors[key] = UqloadExtractor(
-                            request_headers, proxies=GLOBAL_PROXIES
+                            request_headers, proxies=proxy_list
                         )
                     return self.extractors[key]
                 elif host == "vidmoly":
                     if key not in self.extractors:
                         self.extractors[key] = VidmolyExtractor(
-                            request_headers, proxies=GLOBAL_PROXIES
+                            request_headers, proxies=proxy_list
                         )
                     return self.extractors[key]
                 elif host in ["vidoza", "videzz"]:
-                    key = "vidoza"
+                    key = "vidoza_direct" if bypass_warp else "vidoza"
                     if key not in self.extractors:
                         self.extractors[key] = VidozaExtractor(
-                            request_headers, proxies=GLOBAL_PROXIES
+                            request_headers, proxies=proxy_list
                         )
                     return self.extractors[key]
                 elif host in ["turbovidplay", "turboviplay", "emturbovid"]:
-                    key = "turbovidplay"
+                    key = "turbovidplay_direct" if bypass_warp else "turbovidplay"
                     if key not in self.extractors:
                         self.extractors[key] = TurboVidPlayExtractor(
-                            request_headers, proxies=GLOBAL_PROXIES
+                            request_headers, proxies=proxy_list
                         )
                     return self.extractors[key]
                 elif host == "livetv":
                     if key not in self.extractors:
                         self.extractors[key] = LiveTVExtractor(
-                            request_headers, proxies=GLOBAL_PROXIES
+                            request_headers, proxies=proxy_list
                         )
                     return self.extractors[key]
                 elif host == "f16px":
                     if key not in self.extractors:
                         self.extractors[key] = F16PxExtractor(
-                            request_headers, proxies=GLOBAL_PROXIES
+                            request_headers, proxies=proxy_list
                         )
                     return self.extractors[key]
                 elif host in ["city", "cinemacity"]:
-                    key = "cinemacity"
+                    key = "cinemacity_direct" if bypass_warp else "cinemacity"
                     if key not in self.extractors:
                         self.extractors[key] = CinemaCityExtractor(
-                            request_headers, proxies=GLOBAL_PROXIES
+                            request_headers, proxies=proxy_list
                         )
                     return self.extractors[key]
 
             # 2. Auto-detection basata sull'URL
             if "vavoo.to" in url:
-                key = "vavoo"
+                key = "vavoo_direct" if bypass_warp else "vavoo"
                 proxy = get_proxy_for_url("vavoo.to", TRANSPORT_ROUTES, GLOBAL_PROXIES, bypass_warp=bypass_warp)
                 proxy_list = [proxy] if proxy else []
                 if key not in self.extractors:
@@ -946,7 +952,7 @@ class HLSProxy:
             elif "vixsrc.to/" in url.lower() and any(
                 x in url for x in ["/movie/", "/tv/", "/iframe/", "/embed/", "/playlist/"]
             ):
-                key = "vixsrc"
+                key = "vixsrc_direct" if bypass_warp else "vixsrc"
                 proxy = get_proxy_for_url("vixsrc.to", TRANSPORT_ROUTES, GLOBAL_PROXIES, bypass_warp=bypass_warp)
                 proxy_list = [proxy] if proxy else []
                 if key not in self.extractors:
@@ -957,7 +963,7 @@ class HLSProxy:
             elif "vixcloud.co/" in url.lower() and any(
                 x in url.lower() for x in ["/embed/", "/playlist/"]
             ):
-                key = "vixcloud"
+                key = "vixcloud_direct" if bypass_warp else "vixcloud"
                 proxy = get_proxy_for_url("vixcloud.co", TRANSPORT_ROUTES, GLOBAL_PROXIES, bypass_warp=bypass_warp)
                 proxy_list = [proxy] if proxy else []
                 if key not in self.extractors:
@@ -966,7 +972,7 @@ class HLSProxy:
                     )
                 return self.extractors[key]
             elif _is_sportsonline_candidate(url):
-                key = "sportsonline"
+                key = "sportsonline_direct" if bypass_warp else "sportsonline"
                 proxy = _resolve_sportsonline_proxy(url)
                 proxy_list = [proxy] if proxy else []
                 if key not in self.extractors:
@@ -986,7 +992,7 @@ class HLSProxy:
                     ]
                 )
             ):
-                key = "streamhg"
+                key = "streamhg_direct" if bypass_warp else "streamhg"
                 proxy = get_proxy_for_url("streamhg", TRANSPORT_ROUTES, GLOBAL_PROXIES, bypass_warp=bypass_warp)
                 proxy_list = [proxy] if proxy else []
                 if key not in self.extractors:
@@ -995,7 +1001,7 @@ class HLSProxy:
                     )
                 return self.extractors[key]
             elif "cinemacity.cc" in url.lower():
-                key = "cinemacity"
+                key = "cinemacity_direct" if bypass_warp else "cinemacity"
                 proxy = get_proxy_for_url("cinemacity.cc", TRANSPORT_ROUTES, GLOBAL_PROXIES, bypass_warp=bypass_warp)
                 proxy_list = [proxy] if proxy else []
                 if key not in self.extractors:
@@ -1004,7 +1010,7 @@ class HLSProxy:
                     )
                 return self.extractors[key]
             elif "mixdrop" in url or "m1xdrop" in url:
-                key = "mixdrop"
+                key = "mixdrop_direct" if bypass_warp else "mixdrop"
                 proxy = get_proxy_for_url("mixdrop", TRANSPORT_ROUTES, GLOBAL_PROXIES, bypass_warp=bypass_warp)
                 proxy_list = [proxy] if proxy else []
                 if key not in self.extractors:
@@ -1023,7 +1029,7 @@ class HLSProxy:
                     "voe-network.net",
                 ]
             ):
-                key = "voe"
+                key = "voe_direct" if bypass_warp else "voe"
                 proxy = get_proxy_for_url("voe.sx", TRANSPORT_ROUTES, GLOBAL_PROXIES, bypass_warp=bypass_warp)
                 proxy_list = [proxy] if proxy else []
                 if key not in self.extractors:
@@ -1032,7 +1038,7 @@ class HLSProxy:
                     )
                 return self.extractors[key]
             elif "popcdn.day" in url or "freeshot.live" in url:
-                key = "freeshot"
+                key = "freeshot_direct" if bypass_warp else "freeshot"
                 proxy = get_proxy_for_url(
                     "popcdn.day" if "popcdn.day" in url else "freeshot.live", 
                     TRANSPORT_ROUTES, 
@@ -1050,7 +1056,7 @@ class HLSProxy:
                 or "streamtape.to" in url
                 or "streamtape.net" in url
             ):
-                key = "streamtape"
+                key = "streamtape_direct" if bypass_warp else "streamtape"
                 proxy = get_proxy_for_url(
                     "streamtape", TRANSPORT_ROUTES, GLOBAL_PROXIES, bypass_warp=bypass_warp
                 )
@@ -1061,7 +1067,7 @@ class HLSProxy:
                     )
                 return self.extractors[key]
             elif "orionoid.com" in url:
-                key = "orion"
+                key = "orion_direct" if bypass_warp else "orion"
                 proxy = get_proxy_for_url(
                     "orionoid.com", TRANSPORT_ROUTES, GLOBAL_PROXIES, bypass_warp=bypass_warp
                 )
@@ -1084,7 +1090,7 @@ class HLSProxy:
                     "dood.pm",
                 ]
             ):
-                key = "doodstream"
+                key = "doodstream_direct" if bypass_warp else "doodstream"
                 proxy = get_proxy_for_url(
                     "doodstream", TRANSPORT_ROUTES, GLOBAL_PROXIES, bypass_warp=bypass_warp
                 )
@@ -1096,7 +1102,7 @@ class HLSProxy:
                     )
                 return self.extractors[key]
             elif "fastream" in url:
-                key = "fastream"
+                key = "fastream_direct" if bypass_warp else "fastream"
                 proxy = get_proxy_for_url("fastream", TRANSPORT_ROUTES, GLOBAL_PROXIES, bypass_warp=bypass_warp)
                 proxy_list = [proxy] if proxy else []
                 if key not in self.extractors:
@@ -1105,7 +1111,7 @@ class HLSProxy:
                     )
                 return self.extractors[key]
             elif "filelions" in url:
-                key = "filelions"
+                key = "filelions_direct" if bypass_warp else "filelions"
                 proxy = get_proxy_for_url("filelions", TRANSPORT_ROUTES, GLOBAL_PROXIES, bypass_warp=bypass_warp)
                 proxy_list = [proxy] if proxy else []
                 if key not in self.extractors:
@@ -1114,7 +1120,7 @@ class HLSProxy:
                     )
                 return self.extractors[key]
             elif "filemoon" in url:
-                key = "filemoon"
+                key = "filemoon_direct" if bypass_warp else "filemoon"
                 proxy = get_proxy_for_url("filemoon", TRANSPORT_ROUTES, GLOBAL_PROXIES, bypass_warp=bypass_warp)
                 proxy_list = [proxy] if proxy else []
                 if key not in self.extractors:
@@ -1128,7 +1134,7 @@ class HLSProxy:
                 # Rileva per pattern URL stabile (/watch.php?id=NNN)
                 or (re.search(r'/watch\.php\?.*id=\d+', url) is not None)
             ):
-                key = "dlstreams"
+                key = "dlstreams_direct" if bypass_warp else "dlstreams"
                 proxy = get_proxy_for_url(
                     "dlhd.dad", TRANSPORT_ROUTES, GLOBAL_PROXIES, bypass_warp=bypass_warp
                 )
@@ -1139,7 +1145,7 @@ class HLSProxy:
                     )
                 return self.extractors[key]
             elif "lulustream" in url:
-                key = "lulustream"
+                key = "lulustream_direct" if bypass_warp else "lulustream"
                 proxy = get_proxy_for_url(
                     "lulustream", TRANSPORT_ROUTES, GLOBAL_PROXIES, bypass_warp=bypass_warp
                 )
@@ -1150,7 +1156,7 @@ class HLSProxy:
                     )
                 return self.extractors[key]
             elif "maxstream" in url or "uprot.net" in url:
-                key = "maxstream"
+                key = "maxstream_direct" if bypass_warp else "maxstream"
                 proxy_list = []
                 for candidate in (url, "uprot.net", "maxstream.video", "maxstream"):
                     proxy = get_proxy_for_url(
