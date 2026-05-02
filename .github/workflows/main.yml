@@ -2,21 +2,25 @@ name: Sync Daily
 
 on:
   schedule:
-    - cron: '0 4 * * *' # Si aggiorna tutti i giorni alle 4:00 di notte
-  workflow_dispatch: # Ti permette di farlo a mano se vuoi, cliccando un bottone
+    - cron: '0 4 * * *'
+  workflow_dispatch:
 
 jobs:
   sync:
     runs-on: ubuntu-latest
+    # AGGIUNGI QUESTI PERMESSI PER EVITARE IL "FAILED"
+    permissions:
+      contents: write
+    
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v3
-        with:
-          ref: main # Lascia "main", a meno che il progetto usi "master"
+        uses: actions/checkout@v4
 
       - name: Sync Upstream
-        uses: aormsby/Fork-Sync-With-Upstream-action@v3.4
+        uses: aormsby/Fork-Sync-With-Upstream-action@v3.4.1
         with:
+          # Questo NON è un token esposto, è un richiamo sicuro a una chiave interna di GitHub
+          target_repo_token: ${{ secrets.GITHUB_TOKEN }}
           upstream_sync_repo: Realbestia1/Easyproxy
           upstream_sync_branch: main
           target_sync_branch: main
