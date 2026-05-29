@@ -251,6 +251,8 @@ class VidXgoExtractor:
         master_text = await self._fetch(m3u8_url, playback_headers)
         if "#EXTM3U" not in master_text:
             raise ExtractorError("VidXgo: extracted URL did not return a valid HLS manifest")
+        if "#EXTINF" in master_text:
+            master_text = self._make_live(master_text)
 
         from urllib.parse import urljoin
         captured_map: dict[str, str] = {}
@@ -284,6 +286,8 @@ class VidXgoExtractor:
             for v_url, v_text in results:
                 if not v_text:
                     continue
+                if "#EXTINF" in v_text:
+                    v_text = self._make_live(v_text)
                 captured_map[v_url] = v_text
 
         captured_map[m3u8_url] = master_text
